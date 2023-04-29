@@ -6,7 +6,7 @@ import fire
 import torch
 import transformers
 from datasets import load_dataset
-from transformers import LlamaConfig
+
 """
 Unused imports:
 import torch.nn as nn
@@ -108,14 +108,9 @@ def train(
         os.environ["WANDB_WATCH"] = wandb_watch
     if len(wandb_log_model) > 0:
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
-    # Load the base model configuration
-    base_config = LlamaConfig.from_pretrained(base_model)
 
-    # Update the base model's hidden dimensions to match the adapter's dimensions
-    base_config.hidden_size = 8
     model = LlamaForCausalLM.from_pretrained(
         base_model,
-        config=base_config,
         load_in_8bit=True,
         torch_dtype=torch.float16,
         device_map=device_map,
