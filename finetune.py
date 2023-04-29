@@ -204,11 +204,7 @@ def train(
         # The two files above have a different name depending on how they were saved, but are actually the same.
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")
-            adapters_weights = torch.load(checkpoint_name)
-            # Extract the adapter weight tensor from the dictionary
-            #adapter_weights = adapters_weights['adapter.weight']
-            print(adapters_weights.keys())
-
+            checkpoint = torch.load(checkpoint_name)
             # Define a linear transformation to convert 16 input channels to 8 input channels
             linear_transform = nn.Linear(16, 8, bias=False)
 
@@ -216,12 +212,24 @@ def train(
             transformation_weights = torch.randn(8, 16)
             linear_transform.weight.data = transformation_weights
 
-            # Apply the linear transformation to the adapter weights
-            reduced_adapter_weights = linear_transform(adapter_weights.T).T  # torch.Size([8, 4096])
+            # Create an empty dictionary to store the modified weights
+            reduced_weights_dict = {}
 
-            # Update the dictionary with the new weights
-            adapters_weights['adapter.weight'] = reduced_adapter_weights
-            set_peft_model_state_dict(model, adapters_weights)
+            # Iterate through the keys in the checkpoint dictionary and apply the transformation
+            for key in checkpoint.keys():
+                # Check if the shape of the weight tensor is (16, 4096)
+                if checkpoint[key].shape == torch.Size([16, 4096]):
+                    # Apply the linear transformation to the adapter weights
+                    reduced_adapter_weights = linear_transform(checkpoint[key].T).T  # torch.Size([8, 4096])
+
+                    # Update the reduced_weights_dict with the new weights
+                    reduced_weights_dict[key] = reduced_adapter_weights
+                else:
+                    # If the shape is not (16, 4096), copy the original weights to the reduced_weights_dict
+                    reduced_weights_dict[key] = checkpoint[key]
+
+                    # Now, reduced_weights_dict contains the modified weights
+        set_peft_model_state_dict(model, reduced_weights_dict)
             print("We've set the model state dict!")
         else:
             print(f"Checkpoint {checkpoint_name} not found")
