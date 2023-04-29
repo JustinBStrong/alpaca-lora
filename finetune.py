@@ -4,6 +4,7 @@ from typing import List
 
 import fire
 import torch
+import torch.nn as nn
 import transformers
 from datasets import load_dataset
 
@@ -204,7 +205,23 @@ def train(
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")
             adapters_weights = torch.load(checkpoint_name)
-            set_peft_model_state_dict(model, adapters_weights)
+            # Assuming adapter_weights is the weight tensor of size (16, 4096)
+            # adapter_weights = torch.randn(16, 4096) i dont think we're gonna use this
+
+            print("Begin reducing the adapters weights")
+            # Define a linear transformation to convert 16 input channels to 8 input channels
+            linear_transform = nn.Linear(16, 8, bias=False)
+            print("We've declared a linear transform!")
+            # Initialize the transformation weights to reduce the dimensions
+            transformation_weights = torch.randn(8, 16)
+            print("We've declared the transformation weights!")
+            linear_transform.weight.data = transformation_weights
+            print("We've set the transformation weights!")
+            # Apply the linear transformation to the adapter weights
+            reduced_adapter_weights = linear_transform(adapters_weights.T).T  # torch.Size([8, 4096])
+            print("We've reduced the adapter weights!")
+            set_peft_model_state_dict(model, reduced_adapter_weights)
+            print("We've set the model state dict!")
         else:
             print(f"Checkpoint {checkpoint_name} not found")
 
