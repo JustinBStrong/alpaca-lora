@@ -207,6 +207,7 @@ def train(
             adapters_weights = torch.load(checkpoint_name)
             # Extract the adapter weight tensor from the dictionary
             adapter_weights = adapters_weights['adapter.weight']
+            print(adapter_weights.keys())
 
             # Define a linear transformation to convert 16 input channels to 8 input channels
             linear_transform = nn.Linear(16, 8, bias=False)
