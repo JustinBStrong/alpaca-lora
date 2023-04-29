@@ -230,7 +230,7 @@ def train(
 
                     # Now, reduced_weights_dict contains the modified weights
         set_peft_model_state_dict(model, reduced_weights_dict)
-            print("We've set the model state dict!")
+        print("We've set the model state dict!")
         else:
             print(f"Checkpoint {checkpoint_name} not found")
 
