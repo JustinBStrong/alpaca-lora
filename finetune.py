@@ -4,7 +4,6 @@ from typing import List
 
 import fire
 import torch
-import torch.nn as nn
 import transformers
 from datasets import load_dataset
 
@@ -112,7 +111,7 @@ def train(
 
     model = LlamaForCausalLM.from_pretrained(
         base_model,
-        load_in_8bit=False,
+        load_in_8bit=True,
         torch_dtype=torch.float16,
         device_map=device_map,
     )
@@ -204,33 +203,8 @@ def train(
         # The two files above have a different name depending on how they were saved, but are actually the same.
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")
-            checkpoint = torch.load(checkpoint_name)
-            # Define a linear transformation to convert 16 input channels to 8 input channels
-            linear_transform = nn.Linear(16, 8, bias=False)
-
-            # Initialize the transformation weights to reduce the dimensions
-            transformation_weights = torch.randn(8, 16)
-            linear_transform.weight.data = transformation_weights
-
-            # Create an empty dictionary to store the modified weights
-            reduced_weights_dict = {}
-
-            # Iterate through the keys in the checkpoint dictionary and apply the transformation
-            for key in checkpoint.keys():
-                # Check if the shape of the weight tensor is (16, 4096)
-                if checkpoint[key].shape == torch.Size([16, 4096]):
-                    # Apply the linear transformation to the adapter weights
-                    reduced_adapter_weights = linear_transform(checkpoint[key].T).T  # torch.Size([8, 4096])
-
-                    # Update the reduced_weights_dict with the new weights
-                    reduced_weights_dict[key] = reduced_adapter_weights
-                else:
-                    # If the shape is not (16, 4096), copy the original weights to the reduced_weights_dict
-                    reduced_weights_dict[key] = checkpoint[key]
-
-                    # Now, reduced_weights_dict contains the modified weights
-            set_peft_model_state_dict(model, reduced_weights_dict)
-            print("We've set the model state dict!")
+            adapters_weights = torch.load(checkpoint_name)
+            set_peft_model_state_dict(model, adapters_weights)
         else:
             print(f"Checkpoint {checkpoint_name} not found")
 
